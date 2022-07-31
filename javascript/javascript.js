@@ -1,3 +1,5 @@
+prepareTaskList('taskList');
+
 function newElement() {
     try {
         let inputValue = document.getElementById('task').value;
@@ -5,10 +7,21 @@ function newElement() {
         if (!inputValue.trim())
             throw Error('Eklemek istediğiniz görev boş olamaz!')
 
-        if (document.getElementsByTagName('li').hasOwnProperty(inputValue))
+        if (checkLocalStorage('taskList', inputValue)) {
             throw Error('Bu görev zaten  daha önce eklenmiş!');
+        }
 
         prepareItem(inputValue);
+
+        if (localStorage.getItem('taskList')) {
+            let arrayLS = JSON.parse(localStorage.getItem('taskList'));
+            arrayLS.push(inputValue);
+            localStorage.setItem("taskList", JSON.stringify(arrayLS));
+        } else {
+            localStorage.setItem("taskList", JSON.stringify([inputValue]));
+        }
+
+
         showToastMessage('Listeye eklendi.', MesajToast.SUCCESS)
     } catch (e) {
         showToastMessage(e.message, MesajToast.WARN)
@@ -40,6 +53,8 @@ function prepareItem(inputValue) {
     liElement.appendChild(span);
 
     span.onclick = function () {
+        let arrayLS = JSON.parse(localStorage.getItem('taskList'));
+        localStorage.setItem("taskList", JSON.stringify(arrayRemove(arrayLS, inputValue)));
         this.parentElement.remove(); //Elementi siler.
     }
 
@@ -48,7 +63,56 @@ function prepareItem(inputValue) {
     }
 }
 
+function prepareTaskList(key) {
+
+    if (!localStorage.getItem(key))
+        return;
+
+    let ul = document.getElementById('list');
+    let arrayLS = JSON.parse(localStorage.getItem(key));
+    let liElement;
+    let text;
+    let span;
+    let closeText;
+    arrayLS.forEach(item => {
+        liElement = document.createElement('li');
+        liElement.id = item.replace(/\s+/g, '');
+        text = document.createTextNode(item); //Tag arasına değer koyar.
+        liElement.appendChild(text);
+        ul.appendChild(liElement);
+        span = document.createElement("SPAN");
+        closeText = document.createTextNode("\u00D7"); // Çarpı işareti
+        span.className = 'close';
+        span.appendChild(closeText);
+        liElement.appendChild(span);
+
+        span.onclick = function () {
+            let arrayLS = JSON.parse(localStorage.getItem('taskList'));
+            localStorage.setItem("taskList", JSON.stringify(arrayRemove(arrayLS, item)));
+            this.parentElement.remove(); //Elementi siler.
+        }
+
+        liElement.onclick = function () {
+            this.classList.toggle('checked') //Class varsa kaldırır yoksa ekler.
+        }
+    });
+}
+
+function checkLocalStorage(key, item) {
+    if (localStorage.getItem(key)) {
+        let arrayLS = JSON.parse(localStorage.getItem(key));
+        return arrayLS.includes(item);
+    }
+    return false;
+}
+
 const MesajToast = {
     SUCCESS: 'toast success hide',
     WARN: 'toast error hide'
 };
+
+function arrayRemove(arr, value) {
+    return arr.filter(function (ele) {
+        return ele !== value;
+    });
+}
